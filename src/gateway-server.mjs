@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { cacheHeaders, limits } from "./limits.mjs";
@@ -9,8 +10,16 @@ export function createGatewayServer(handle, {
   headerMs = 3500,
   writeMs = 2000,
   socketMs = 12_000,
+  handshakesMs = 3500,
+  tls,
+  expectedHost,
+  record = () => {},
 } = {}) {
+  const hosts = new Set(expectedHost ? [expectedHost] : []);
+  if (expectedHost && !new URL("https://" + expectedHost).port) hosts.add(expectedHost + ":443");
   const sockets = new Map();
+  const tcpSockets = new Set();
+  const handshakes = new Map();
   let active = 0;
 
   async function respond(outgoing, state, response) {
@@ -21,8 +30,12 @@ export function createGatewayServer(handle, {
     // The deadline lasts until socket close, including when Node has handed bytes
     // to its write queue. Reading a few more bytes does not extend it.
     const socket = outgoing.socket;
-    state.writeTimer = setTimeout(() => socket.destroy(), writeMs);
+    state.writeTimer = setTimeout(() => {
+      record("write_expired");
+      socket.destroy();
+    }, writeMs);
     outgoing.writeHead(response.status, { ...Object.fromEntries(response.headers), connection: "close" });
+    record("response_" + Math.floor(response.status / 100) + "xx");
     if (response.body) {
       await pipeline(response.body, outgoing, { signal: state.abort.signal });
     } else {
@@ -30,11 +43,11 @@ export function createGatewayServer(handle, {
     }
   }
 
-  const server = createServer({
-    headersTimeout: headerMs,
-    requestTimeout: socketMs,
-    maxHeaderSize: 8192,
-  }, async (incoming, outgoing) => {
+  const options = { headersTimeout: headerMs, requestTimeout: socketMs, maxHeaderSize: 8192 };
+  const server = tls
+    ? createHttpsServer({ ...options, ...tls, ALPNProtocols: ["http/1.1"] })
+    : createServer(options);
+  server.on("request", async (incoming, outgoing) => {
     const state = sockets.get(incoming.socket);
     if (!state || state.started) {
       incoming.socket.destroy();
@@ -48,7 +61,12 @@ export function createGatewayServer(handle, {
 
     try {
       if (!admitted) {
+        record("exchange_limited");
         await respond(outgoing, state, new Response(null, { status: 503, headers: cacheHeaders }));
+        return;
+      }
+      if (hosts.size && !hosts.has(incoming.headers.host?.toLowerCase())) {
+        await respond(outgoing, state, new Response(null, { status: 421, headers: cacheHeaders }));
         return;
       }
       if (!incoming.url?.startsWith("/") || incoming.url.startsWith("//")) {
@@ -60,7 +78,7 @@ export function createGatewayServer(handle, {
         method: incoming.method, headers: incoming.headers, signal: state.abort.signal,
         ...(hasBody && { body: Readable.toWeb(incoming), duplex: "half" }),
       });
-      await respond(outgoing, state, await handle(request));
+      await respond(outgoing, state, await handle(request, incoming.socket.remoteAddress));
     } catch {
       if (!outgoing.headersSent && !outgoing.destroyed && !state.abort.signal.aborted) {
         clearTimeout(state.writeTimer);
@@ -85,12 +103,20 @@ export function createGatewayServer(handle, {
   server.maxConnections = maxConnections;
   server.maxRequestsPerSocket = 1;
   server.on("dropRequest", (_, socket) => socket.destroy());
-  server.on("connection", (socket) => {
+  server.on("drop", () => record("connection_limited"));
+
+  function trackRequestSocket(socket) {
     const state = {
       abort: new AbortController(),
       started: false,
-      headerTimer: setTimeout(() => socket.destroy(), headerMs),
-      socketTimer: setTimeout(() => socket.destroy(), socketMs),
+      headerTimer: setTimeout(() => {
+        record("headers_expired");
+        socket.destroy();
+      }, headerMs),
+      socketTimer: setTimeout(() => {
+        record("socket_expired");
+        socket.destroy();
+      }, socketMs),
       writeTimer: undefined,
       closed: new Promise((resolve) => socket.once("close", resolve)),
     };
@@ -102,6 +128,49 @@ export function createGatewayServer(handle, {
       sockets.delete(socket);
       state.abort.abort();
     });
+  }
+
+  function peerKey(socket) {
+    return [socket.remoteAddress, socket.remotePort, socket.localAddress, socket.localPort].join("|");
+  }
+
+  server.on("connection", (socket) => {
+    tcpSockets.add(socket);
+    socket.once("close", () => tcpSockets.delete(socket));
+    if (!tls) return trackRequestSocket(socket);
+
+    // TLS exposes a different socket object after the handshake. The live TCP
+    // endpoint tuple is the same on both and identifies the pending timer.
+    const key = peerKey(socket);
+    const timer = setTimeout(() => {
+      record("handshake_expired");
+      socket.destroy();
+    }, handshakesMs);
+    handshakes.set(key, timer);
+    socket.once("close", () => {
+      clearTimeout(timer);
+      if (handshakes.get(key) === timer) handshakes.delete(key);
+    });
   });
+
+  if (tls) {
+    server.on("secureConnection", (socket) => {
+      const key = peerKey(socket);
+      const timer = handshakes.get(key);
+      if (timer === undefined) {
+        socket.destroy();
+        return;
+      }
+      clearTimeout(timer);
+      handshakes.delete(key);
+      trackRequestSocket(socket);
+    });
+  }
+
+  server.shutdown = () => {
+    server.close();
+    for (const socket of sockets.keys()) socket.destroy();
+    for (const socket of tcpSockets) socket.destroy();
+  };
   return server;
 }

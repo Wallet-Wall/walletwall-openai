@@ -1,0 +1,46 @@
+[Unit]
+Description=WalletWall read-only MCP gateway
+Requires=walletwall-mcp.socket
+After=walletwall-mcp.socket
+PartOf=walletwall-mcp.socket
+StartLimitIntervalSec=15min
+StartLimitBurst=2
+
+[Service]
+Type=exec
+User=walletwall-mcp
+Group=walletwall-mcp
+WorkingDirectory=/opt/walletwall/current
+EnvironmentFile=/etc/walletwall/gateway.env
+ExecStart=/opt/walletwall/node/bin/node /opt/walletwall/current/scripts/serve.mjs --fixed-host-tls
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=no
+TimeoutStopSec=5s
+StandardOutput=journal
+StandardError=journal
+UMask=0077
+
+StateDirectory=walletwall-mcp
+StateDirectoryMode=0700
+MemoryHigh=512M
+MemoryMax=768M
+CPUQuota=175%
+TasksMax=64
+LimitNOFILE=256
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+InaccessiblePaths=-/run
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes

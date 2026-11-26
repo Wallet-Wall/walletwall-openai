@@ -1,6 +1,8 @@
 # Deployment, spend and rollback
 
-**Status: local verification only.** A single fixed-capacity HTTPS host is
+**OPENAI-01 comparison and loopback runbook.** See the [OPENAI-02 fixed-host
+deployment review](fixed-host.md) and [activation runbook](fixed-host-runbook.md)
+for the direct TLS and systemd design. A single fixed-capacity HTTPS host is
 the recommendation for independent review. The protected Vercel origin is
 an alternative if a separate execution environment or managed origin
 rollback is needed. See the [hosting comparison](hosting-comparison.md) for

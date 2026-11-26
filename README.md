@@ -14,7 +14,7 @@ The intended license is Apache-2.0; applicable upstream notices must accompany r
 
 ## Local verification
 
-Requirements are Node.js 24 recommended (22.18 or later), Git, curl and Python 3.
+Requirements are Node.js 24 recommended (22.18 or later), Git, curl, OpenSSL and Python 3.
 Run from the repository root:
 
 ```sh
@@ -41,3 +41,6 @@ matches are point-in-time references.
 - [Reviewer guide and verification results](docs/reviewer.md)
 - [OpenAI requirements matrix](docs/submission.md)
 - [Draft cloud privacy notice](docs/privacy.md) and [draft terms](docs/terms.md)
+
+For OPENAI-02 see the [fixed-host deployment review](docs/fixed-host.md) and
+[activation and installed-host runbook](docs/fixed-host-runbook.md).
