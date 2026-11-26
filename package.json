@@ -12,9 +12,11 @@
     "build": "npm run pin && node scripts/build.mjs && node scripts/fixtures.mjs",
     "test": "node --test test/*.test.mjs",
     "package": "node scripts/package-schemas.mjs && python3 scripts/package.py",
-    "verify": "npm run build && npm test && npm run package -- --check",
+    "verify": "npm run build && npm test && npm run package -- --check && npm run host:package -- --check",
     "start": "node scripts/serve.mjs",
-    "audit:closure": "node scripts/audit.mjs"
+    "audit:closure": "node scripts/audit.mjs",
+    "host:package": "python3 scripts/host-package.py",
+    "capacity": "node scripts/capacity.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",

@@ -1,0 +1,13 @@
+[Unit]
+Description=WalletWall public HTTPS listener
+
+[Socket]
+ListenStream=[::]:443
+BindIPv6Only=both
+Backlog=64
+NoDelay=yes
+Accept=no
+FileDescriptorName=https
+
+[Install]
+WantedBy=sockets.target

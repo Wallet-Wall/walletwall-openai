@@ -41,3 +41,6 @@ matches are point-in-time references.
 - [Reviewer guide and verification results](docs/reviewer.md)
 - [OpenAI requirements matrix](docs/submission.md)
 - [Draft cloud privacy notice](docs/privacy.md) and [draft terms](docs/terms.md)
+
+For OPENAI-02 see the [fixed-host deployment review](docs/fixed-host.md) and
+[activation and installed-host runbook](docs/fixed-host-runbook.md).

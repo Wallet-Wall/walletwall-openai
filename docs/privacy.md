@@ -16,7 +16,11 @@ bundled point-in-time registry and policies.
 WalletWall's proposed application processes inputs in memory for the request
 and releases them after processing. It adds no database, request-history
 store, analytics, or evidence log. It uses aggregate capacity counters and an
-empty operating lease marker with no user or request information. Its
+empty operating lease marker with no user or request information. In
+direct TLS mode, the service uses process-local, rotating-on-restart
+pseudonymous network buckets to throttle traffic. Bucket data is held
+in memory and expires. The service emits aggregate counts and never
+prints a network address, bucket key, or evidence in an application log. Its
 operations do not identify people behind wallet addresses.
 
 The service providers for TLS ingress and compute may process network

@@ -155,7 +155,7 @@ export function createHandler({
 } = {}) {
   if (originKey !== undefined && !keyPattern.test(originKey)) throw Error("Invalid origin credential configuration.");
   const origins = new Set(allowedOrigins);
-  return async (request) => {
+  return async (request, peer) => {
     if (!enabled) return rejection("disabled");
     if (originKey && !matchesKey(request, originKey)) return rejection("origin");
 
@@ -170,7 +170,7 @@ export function createHandler({
     if (Number.isNaN(length)) return rejection("malformed");
     if (length > limits.requestBytes) return rejection("oversized");
 
-    const release = admit();
+    const release = admit(peer);
     if (!release) return rejection("busy");
     try {
       const body = await readBody(request.body, request.signal, limits.requestBytes, limits.bodyMs, length);
