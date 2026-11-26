@@ -36,6 +36,7 @@ Streamable HTTP client. The six tool calls accept supplied evidence. Registry
 matches are point-in-time references.
 
 - [Architecture and threat model](docs/security.md)
+- [Hosting comparison and anonymous lease controls](docs/hosting-comparison.md)
 - [Deployment, spend and rollback runbook](docs/operations.md)
 - [Reviewer guide and verification results](docs/reviewer.md)
 - [OpenAI requirements matrix](docs/submission.md)

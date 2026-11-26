@@ -52,7 +52,9 @@ Additional checks cover tool and resource discovery, output schemas, successful
 engine outputs from all 115 conformance vectors, an at-cap synthetic bundle,
 untrusted protocol input, cancellation, worker termination, same-ID concurrent
 isolation, size limits, aggregate admission across two simulated origins,
-lease reuse protection, worker environment isolation, and local shutdown. A
+lease reuse protection, worker environment isolation, and local shutdown.
+Socket tests exercise slow response consumption, incomplete headers and bodies,
+connection and writer saturation, disconnect cancellation, and recovery. A
 Linux network-syscall trace of all six valid in-process tool calls recorded
 zero network syscalls. Hosted request and gateway egress still require
 verification on the approved infrastructure.
@@ -63,6 +65,9 @@ account-name hygiene failure because the workspace account name was also a
 common tracked word. The targeted test in upstream's documented CI mode
 recorded 25 passed with that check skipped. This adapter changes no upstream
 tests or source.
+
+The [hosting comparison](hosting-comparison.md) covers the single-host
+recommendation, the optional Vercel origin and anonymous lease exhaustion.
 
 ## Recording script for the installed release
 

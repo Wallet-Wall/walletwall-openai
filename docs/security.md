@@ -9,25 +9,18 @@ as produced by the engine. Input, tool and internal errors fail closed.
 
 ## Request and data flow
 
-```text
-ChatGPT or Codex
-    -> public HTTPS gateway (one authorized aggregate budget lease)
-        -> protected Vercel origin (first-party transport hop)
-            -> short-lived Node worker with static SDK and Copilot source
-        <- bounded JSON MCP response
-    <- tool result
-```
+The recommended initial topology places TLS ingress, the loopback gateway and
+the existing worker on one fixed-capacity host. The public TLS ingress
+forwards `/mcp` to the gateway. In the optional second topology, the
+gateway forwards admitted requests to a protected Vercel origin, where the
+same worker runs. See the [hosting comparison](hosting-comparison.md).
 
-Local verification runs the same worker and handler on loopback. The gateway
-binds to loopback behind an owner-approved TLS ingress. The Vercel function is
-disabled by default and requires an origin credential on every request. The
-gateway sends only selected protocol headers, its first-party origin credentials
-and the bounded request body. The deployment protection bypass and application
-origin key belong in deployment secrets, never the plugin manifest or review
-fixtures. The worker receives only the body and selected protocol headers.
-The Vercel origin response marker lets the gateway discard provider error
-pages and pass only adapter-owned MCP responses. These deployment assumptions
-require end-to-end validation before exposure.
+Both gateway modes use the same aggregate lease. In the two-tier mode the
+gateway forwards bounded request bodies, selected protocol headers and two
+private origin credentials. The Vercel origin is disabled by default. Its
+response marker lets the gateway discard provider-owned error bodies. In both
+modes the worker receives only the body and selected protocol headers, with
+an empty environment.
 
 ### Controls and evidence
 
@@ -37,12 +30,13 @@ require end-to-end validation before exposure.
 | Oversized bodies and results | Declared and streamed request cap of 2 MiB and a 2-second body deadline. Decoded envelope cap of 18 levels and 20,100 nodes. Upstream argument caps remain in force. The worker checks the encoded response against 4 MiB before returning it. Limits fail with an explicit error and no partial result. |
 | CPU, memory and concurrent requests | One worker per admitted operation, 1.5-second wall-clock execution deadline, resource limits for the V8 heap and stack, and termination on completion, deadline, or caller disconnect. The tests stop a worker in a synchronous loop. Gateway capacity is four admitted requests and 32 local connections. Worker startup, cold processes and provider overhead need hosted measurement. |
 | Aggregate abuse, replay, and spend | The single gateway limits all accepted calls before origin routing. It uses a token bucket with burst 12 and 120 admissions per minute, four concurrent requests and a lifetime ceiling of 10,000 admissions. A one-time empty filesystem marker prevents restarting the same authorized budget lease. It contains no request data. Repeated and replayed calls use the same lease. Origin authentication prevents direct use of the application. Confirm provider-level protection before invocation on all origins and aliases. |
+| Slow sockets and response writes | An absolute 3.5-second header deadline, 2-second response-write deadline, and 12-second socket ceiling. Replies use backpressure and close the connection after one request. Up to four requests can hold a writer slot until socket close and handler cleanup, and 32 Node connections may be open. Test slow clients at the TLS edge before exposure. |
 | Request isolation | A fresh stateless MCP transport and worker per request. No session store, database, request cache or persistent user data. The parallel tests use identical RPC IDs with distinct inputs and check response isolation. |
 | Instruction-like evidence | The skill and server instruct hosts to treat fields as data. The engine validates and evaluates the bounded records, uses supplied strings as values, and makes no provider calls. Locally, the synthetic injected label remains lineage data and does not move the readiness result. Host interpretation is a separate review check. |
-| Prototype pollution, SSRF, and path traversal | The protocol guard rejects unsafe object keys. The engine validates the input with existing schemas. Resource reads use an exact lookup table. Caller strings never select network destinations or filesystem paths. The gateway forwards only to its configured HTTPS Vercel origin and rejects redirects. |
+| Prototype pollution, SSRF, and path traversal | The protocol guard rejects unsafe object keys. The engine validates the input with existing schemas. Resource reads use an exact lookup table. Caller strings never select network destinations or filesystem paths. The forwarding mode uses one configured HTTPS Vercel origin and rejects redirects. |
 | Build and dependency integrity | Exact Git, bundle, skill and icon pins and a locked npm install. The build emits an input and external-import inventory and refuses an unexpected package or external import. The isolated worker has only SDK, Zod, Zod-to-JSON-Schema and content-type code. Unused SDK elicitation validation is replaced by a fail-closed build stub. |
 | Logging and error disclosure | The adapter has no per-request logger. Worker stdout and stderr are discarded. The loopback process emits only its startup status. Errors contain fixed status information or sanitized engine diagnostics. The gateway does not return provider log or error bodies. Provider logs must be verified separately. |
-| Denial of service and shutdown | Fixed local gateway connection count, application rate and concurrency, origin response cap, function deadline, one-time lease and immediate local SIGTERM shutdown. Provider DDoS protection, residual rejected-traffic cost, production cancel behavior and observed recovery are hosting acceptance criteria. |
+| Denial of service and shutdown | Fixed local gateway connection count, application rate and concurrency, origin response cap, function deadline, one-time lease and immediate local SIGTERM shutdown. Provider DDoS protection, residual rejected-traffic cost, production cancel behavior and observed recovery are hosting acceptance criteria. Anonymous lease exhaustion and proposed availability controls are documented in the hosting comparison. |
 
 ## Dependency advisory decision
 
@@ -61,8 +55,8 @@ builder and development tools.
 
 The process-wide limits assume one fixed-capacity gateway with exclusive access
 to its lease directory. An independently mounted duplicate gateway would
-create independent capacity. Deployment review must verify that configuration
-and provider-side direct-origin protection. Node resource limits control V8
+create independent capacity. Deployment review must verify that configuration and, if a separate origin
+is selected, provider-side direct-origin protection. Node resource limits control V8
 memory, with additional bounded buffers accounted for separately. The runtime
 still relies on host isolation and TLS ingress for platform-level resource
 and network controls. Production provider processing, retention and error

@@ -23,8 +23,8 @@ The service providers for TLS ingress and compute may process network
 metadata, timestamps, request status, routing and security information to
 provide and protect the service. Recipients, retention, access restrictions
 and regions depend on the approved infrastructure. Verify and disclose them
-before publication. Vercel's published runtime log retention varies by plan,
-including one day for standard Pro and 30 days with Observability Plus.
+before publication. If the separate Vercel origin is selected, Vercel's published runtime log
+retention varies by plan, including one day for standard Pro and 30 days with Observability Plus.
 Restrict provider log access to authorized operators and exclude payload
 collection or logging where the provider supports that configuration.
 
