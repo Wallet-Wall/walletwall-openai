@@ -1,0 +1,11 @@
+WalletWall OpenAI distribution adapter
+
+The adapter builds against WalletWall Copilot, licensed under the Apache License,
+Version 2.0. The upstream projects and exact pins are recorded in upstream.json.
+The vault-readiness skill is adapted for a remote MCP host from the matching
+WalletWall Copilot and Claude skill. WalletWall attribution, evidence policies,
+and point-in-time reference data originate in the pinned Copilot repository.
+
+The WalletWall name and approved brick-wallet icon are used with the owner's
+permission for this distribution. The Apache-2.0 license does not grant rights
+in the WalletWall name or marks. See TRADEMARKS.md.
