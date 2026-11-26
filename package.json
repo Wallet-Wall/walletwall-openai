@@ -1,0 +1,27 @@
+{
+  "name": "walletwall-openai",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "pin": "node scripts/pin.mjs",
+    "build": "npm run pin && node scripts/build.mjs && node scripts/fixtures.mjs",
+    "test": "node --test test/*.test.mjs",
+    "package": "node scripts/package-schemas.mjs && python3 scripts/package.py",
+    "verify": "npm run build && npm test && npm run package -- --check",
+    "start": "node scripts/serve.mjs",
+    "audit:closure": "node scripts/audit.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2"
+  }
+}

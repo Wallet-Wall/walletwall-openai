@@ -1,0 +1,35 @@
+name: Verify remote adapter
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: walletwall-openai-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the GitHub-selected commit
+        run: |
+          git init --quiet
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git fetch --quiet --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --quiet --detach FETCH_HEAD
+      - name: Select Node.js 24 from the hosted runner
+        run: |
+          if [[ "$(node -p 'process.versions.node.split(".")[0]')" != 24 ]]; then
+            node_bin="$(find "$RUNNER_TOOL_CACHE/node" -path '*/24.*/x64/bin' -type d | sort -V | tail -1)"
+            test -n "$node_bin" && test -x "$node_bin/node"
+            printf '%s\n' "$node_bin" >> "$GITHUB_PATH"
+          fi
+      - run: npm ci --ignore-scripts
+      - run: npm run verify
+      - run: npm run audit:closure

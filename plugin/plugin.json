@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "walletwall-openai",
+  "version": "0.2.0",
+  "description": "Inspect supplied stablecoin evidence and evaluate WalletWall vault technical readiness.",
+  "homepage": "https://walletwall.org",
+  "repository": "https://github.com/Wallet-Wall/walletwall-openai",
+  "license": "Apache-2.0",
+  "keywords": ["stablecoins", "evidence", "provenance", "technical-readiness"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "WalletWall Vault Readiness",
+        "shortDescription": "Verify stablecoin evidence",
+        "longDescription": "Inspect supplied stablecoin evidence for asset identity, provenance, conflicts, and freshness. WalletWall applies published technical-readiness criteria to structured evidence you provide and uses bundled point-in-time references for asset lookup. Its tools operate read-only. Results describe evidence under those criteria and carry no assurance about wallet security, investment merit, or quantum resistance.",
+        "category": "Developer Tools",
+        "defaultPrompt": [
+          "Resolve this stablecoin using its chain ID and contract address.",
+          "Inspect this supplied evidence bundle for conflicts, freshness, and source provenance.",
+          "Assess technical readiness from this supplied bundle and explain the criteria and evidence gaps."
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      },
+      "review": {
+        "commerce": false,
+        "commerce_description": "This plugin has no payments, subscriptions, advertising, checkout, or purchase flows."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "Initial remote release of WalletWall Vault Readiness for ChatGPT and Codex. Six read-only tools inspect supplied stablecoin evidence, trace provenance, check evidence consistency, and evaluate WalletWall technical-readiness criteria using versioned point-in-time references."
+      }
+    }
+  }
+}
