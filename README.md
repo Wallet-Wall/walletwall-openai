@@ -14,7 +14,7 @@ The intended license is Apache-2.0; applicable upstream notices must accompany r
 
 ## Local verification
 
-Requirements are Node.js 24 recommended (22.18 or later), Git, curl and Python 3.
+Requirements are Node.js 24 recommended (22.18 or later), Git, curl, OpenSSL and Python 3.
 Run from the repository root:
 
 ```sh
