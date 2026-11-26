@@ -17,12 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825ba76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
+      - name: Check out the GitHub-selected commit
+        run: |
+          git init --quiet
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git fetch --quiet --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --quiet --detach FETCH_HEAD
+      - name: Select Node.js 24 from the hosted runner
+        run: |
+          if [[ "$(node -p 'process.versions.node.split(".")[0]')" != 24 ]]; then
+            node_bin="$(find "$RUNNER_TOOL_CACHE/node" -path '*/24.*/x64/bin' -type d | sort -V | tail -1)"
+            test -n "$node_bin" && test -x "$node_bin/node"
+            printf '%s\n' "$node_bin" >> "$GITHUB_PATH"
+          fi
       - run: npm ci --ignore-scripts
       - run: npm run verify
       - run: npm run audit:closure
